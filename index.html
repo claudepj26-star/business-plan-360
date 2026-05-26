@@ -6,7 +6,7 @@
 <title>Business Plan 360º — DSA Soluções Empresariais</title>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 :root {
   --azul: #0C447C;
@@ -569,7 +569,9 @@ async function enviar() {
   const step = FLUXO[stepId];
 
   if (step && step.campo) {
-    const val = isNaN(parseFloat(texto)) ? texto : parseFloat(texto);
+    const camposNumericos = ['atendimentos','conversao','ticket','meta_anual','custo_fixo','custo_variavel','prolabore','preco1','preco2'];
+    const numParsed = parseFloat(texto.replace(',','.'));
+    const val = camposNumericos.includes(step.campo) ? (isNaN(numParsed) ? 0 : numParsed) : texto;
     dados[step.campo] = val;
     historico.push({ pergunta: stepId, resposta: texto });
   }
@@ -602,14 +604,14 @@ function fmtN(v) { return v || '—'; }
 
 function atualizarDashboard() {
   const d = dados;
-  const fat_mensal = (d.atendimentos * (d.conversao / 10) * d.ticket) || 0;
+  const fat_mensal = (Number(d.atendimentos) * (Number(d.conversao) / 10) * Number(d.ticket)) || 0;
   const fat_anual = fat_mensal * 12;
-  const custo_var_r = fat_mensal * (d.custo_variavel / 100);
-  const lucro_op = fat_mensal - custo_var_r - d.custo_fixo;
-  const lucro_liq = lucro_op - d.prolabore;
+  const custo_var_r = fat_mensal * (Number(d.custo_variavel) / 100);
+  const lucro_op = fat_mensal - custo_var_r - Number(d.custo_fixo);
+  const lucro_liq = lucro_op - Number(d.prolabore);
   const margem = fat_mensal > 0 ? ((lucro_liq / fat_mensal) * 100).toFixed(1) : 0;
-  const pe = (1 - d.custo_variavel / 100) > 0
-    ? (d.custo_fixo / (1 - d.custo_variavel / 100)).toFixed(0) : 0;
+  const pe = (1 - Number(d.custo_variavel) / 100) > 0
+    ? (Number(d.custo_fixo) / (1 - Number(d.custo_variavel) / 100)).toFixed(0) : 0;
 
   if (d.negocio) document.getElementById('dashNomeEmp').textContent = d.negocio + (d.cidade ? ` · ${d.cidade}` : '');
 
@@ -617,8 +619,8 @@ function atualizarDashboard() {
   body.innerHTML = `
     <div class="kpi-grid">
       <div class="kpi-card"><div class="kpi-label">Faturamento mensal</div><div class="kpi-val ${fat_mensal ? '' : 'placeholder'}">${fat_mensal ? fmt(fat_mensal) : '—'}</div></div>
-      <div class="kpi-card"><div class="kpi-label">Lucro líquido</div><div class="kpi-val verde ${lucro_liq ? '' : 'placeholder'}">${lucro_liq ? fmt(lucro_liq) : '—'}</div></div>
-      <div class="kpi-card"><div class="kpi-label">Margem de lucro</div><div class="kpi-val ${margem ? '' : 'placeholder'}">${margem ? margem + '%' : '—'}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Lucro líquido</div><div class="kpi-val verde ${fat_mensal ? '' : 'placeholder'}">${fat_mensal ? fmt(lucro_liq) : '—'}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Margem de lucro</div><div class="kpi-val ${fat_mensal ? '' : 'placeholder'}">${fat_mensal ? margem + '%' : '—'}</div></div>
       <div class="kpi-card"><div class="kpi-label">Ponto de equilíbrio</div><div class="kpi-val ${pe ? '' : 'placeholder'}">${pe ? fmt(pe) : '—'}</div></div>
     </div>
 
@@ -699,7 +701,7 @@ function atualizarDashboard() {
     </div>` : ''}
   `;
 
-  if (d.custo_fixo) renderChart(fat_mensal, lucro_liq, d.custo_fixo + d.prolabore + (fat_mensal * d.custo_variavel / 100));
+  if (d.custo_fixo) renderChart(fat_mensal, lucro_liq, Number(d.custo_fixo) + Number(d.prolabore) + (fat_mensal * Number(d.custo_variavel) / 100));
 }
 
 function renderChart(fat, lucro, custos) {
@@ -731,13 +733,17 @@ function renderChart(fat, lucro, custos) {
 
 // ── EXPORTAR EXCEL ───────────────────────────────────────────────────────────
 function exportarExcel() {
+  if (typeof XLSX === 'undefined') {
+    alert('A biblioteca de Excel ainda está carregando. Aguarde alguns segundos e tente novamente.');
+    return;
+  }
   const d = dados;
-  const fat = d.atendimentos * (d.conversao / 10) * d.ticket;
-  const custo_var_r = fat * (d.custo_variavel / 100);
-  const lucro_op = fat - custo_var_r - d.custo_fixo;
-  const lucro_liq = lucro_op - d.prolabore;
+  const fat = (Number(d.atendimentos) * (Number(d.conversao) / 10) * Number(d.ticket)) || 0;
+  const custo_var_r = fat * (Number(d.custo_variavel) / 100);
+  const lucro_op = fat - custo_var_r - Number(d.custo_fixo);
+  const lucro_liq = lucro_op - Number(d.prolabore);
   const margem = fat > 0 ? (lucro_liq / fat * 100).toFixed(1) : 0;
-  const pe = (1 - d.custo_variavel / 100) > 0 ? (d.custo_fixo / (1 - d.custo_variavel / 100)).toFixed(0) : 0;
+  const pe = (1 - Number(d.custo_variavel) / 100) > 0 ? (Number(d.custo_fixo) / (1 - Number(d.custo_variavel) / 100)).toFixed(0) : 0;
 
   const wb = XLSX.utils.book_new();
 
@@ -799,7 +805,7 @@ function exportarExcel() {
   const proj = [['Mês','Faturamento (R$)','Custos (R$)','Lucro (R$)']];
   meses.forEach((m, i) => {
     const f = fat * (1 + i * 0.02);
-    const c = (d.custo_fixo + d.prolabore + f * d.custo_variavel / 100);
+    const c = (Number(d.custo_fixo) + Number(d.prolabore) + f * Number(d.custo_variavel) / 100);
     proj.push([m, f.toFixed(2), c.toFixed(2), (f - c).toFixed(2)]);
   });
   const wsProj = XLSX.utils.aoa_to_sheet(proj);
