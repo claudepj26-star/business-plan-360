@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Business Plan 360º — DSA Soluções Empresariais</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root {
+  --azul: #0C447C;
+  --azul-med: #185FA5;
+  --azul-claro: #E6F1FB;
+  --azul-vivo: #378ADD;
+  --verde: #0F6E56;
+  --verde-claro: #E1F5EE;
+  --cinza-bg: #F7F8FA;
+  --cinza-borda: #E2E5EC;
+  --cinza-texto: #4A4E5A;
+  --cinza-leve: #8892A4;
+  --branco: #FFFFFF;
+  --sombra: 0 2px 12px rgba(12,68,124,0.08);
+  --radius: 14px;
+  --radius-sm: 8px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; font-family: 'DM Sans', sans-serif; background: var(--cinza-bg); color: var(--cinza-texto); }
+
+/* ── LAYOUT ── */
+.app { display: grid; grid-template-columns: 1fr 1fr; height: 100vh; }
+@media (max-width: 768px) {
+  .app { grid-template-columns: 1fr; grid-template-rows: auto 1fr; height: auto; min-height: 100vh; }
+  .painel-dir { display: none; }
+  .painel-dir.ativo { display: flex; }
+  .painel-esq { height: auto; }
+}
+
+/* ── PAINEL ESQUERDO — CHAT ── */
+.painel-esq {
+  display: flex; flex-direction: column; height: 100vh;
+  border-right: 1px solid var(--cinza-borda); background: var(--branco);
+}
+.chat-header {
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--cinza-borda);
+  background: var(--branco);
+  flex-shrink: 0;
+}
+.logo-area { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.logo-text { font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 700; color: var(--azul); letter-spacing: 0.04em; line-height: 1.2; }
+.logo-sub { font-size: 10px; font-weight: 400; color: var(--cinza-leve); letter-spacing: 0.06em; text-transform: uppercase; }
+.progresso-wrap { display: flex; align-items: center; gap: 8px; }
+.progresso-bar { flex: 1; height: 4px; background: var(--cinza-borda); border-radius: 2px; overflow: hidden; }
+.progresso-fill { height: 100%; background: linear-gradient(90deg, var(--azul-med), var(--azul-vivo)); border-radius: 2px; transition: width 0.5s ease; }
+.progresso-txt { font-size: 11px; color: var(--cinza-leve); min-width: 36px; text-align: right; }
+.etapa-nome { font-size: 11px; color: var(--azul-med); font-weight: 500; margin-top: 4px; }
+
+.chat-msgs {
+  flex: 1; overflow-y: auto; padding: 16px;
+  display: flex; flex-direction: column; gap: 12px;
+  scroll-behavior: smooth;
+}
+.msg { display: flex; gap: 8px; animation: fadeUp 0.3s ease; }
+@keyframes fadeUp { from { opacity:0; transform: translateY(6px); } to { opacity:1; transform: translateY(0); } }
+.msg.agente { align-items: flex-start; }
+.msg.usuario { align-items: flex-start; flex-direction: row-reverse; }
+
+.avatar {
+  width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 600;
+}
+.avatar.ag { background: var(--azul); color: #fff; font-family: 'Sora', sans-serif; }
+.avatar.us { background: var(--cinza-borda); color: var(--azul); }
+
+.balao {
+  max-width: calc(100% - 46px);
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 14px; line-height: 1.6;
+}
+.msg.agente .balao { background: var(--cinza-bg); color: var(--cinza-texto); border-top-left-radius: 3px; }
+.msg.usuario .balao { background: var(--azul); color: #fff; border-top-right-radius: 3px; }
+.balao strong { font-weight: 600; }
+
+.digitando { display: flex; gap: 4px; align-items: center; padding: 12px 14px; }
+.dot { width: 6px; height: 6px; border-radius: 50%; background: var(--cinza-leve); animation: bounce 1.2s infinite; }
+.dot:nth-child(2) { animation-delay: 0.2s; }
+.dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-5px)} }
+
+.opcoes-rapidas { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 16px 10px; }
+.opcao-btn {
+  background: var(--branco); border: 1px solid var(--azul-claro);
+  color: var(--azul-med); padding: 7px 12px; border-radius: 20px;
+  font-size: 13px; cursor: pointer; transition: all 0.15s;
+  font-family: 'DM Sans', sans-serif;
+}
+.opcao-btn:hover { background: var(--azul-claro); }
+
+.chat-input-wrap {
+  padding: 12px 16px; border-top: 1px solid var(--cinza-borda); flex-shrink: 0;
+  display: flex; gap: 8px; align-items: flex-end;
+}
+.chat-input {
+  flex: 1; border: 1px solid var(--cinza-borda); border-radius: var(--radius-sm);
+  padding: 10px 14px; font-size: 14px; font-family: 'DM Sans', sans-serif;
+  resize: none; outline: none; min-height: 44px; max-height: 120px;
+  transition: border-color 0.15s; background: var(--cinza-bg);
+}
+.chat-input:focus { border-color: var(--azul-med); background: var(--branco); }
+.send-btn {
+  width: 44px; height: 44px; border-radius: var(--radius-sm);
+  background: var(--azul); color: #fff; border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s; flex-shrink: 0;
+}
+.send-btn:hover { background: var(--azul-med); }
+.send-btn:disabled { background: var(--cinza-borda); cursor: default; }
+.send-btn svg { width: 18px; height: 18px; }
+
+/* ── PAINEL DIREITO — DASHBOARD ── */
+.painel-dir {
+  display: flex; flex-direction: column; height: 100vh;
+  background: var(--cinza-bg); overflow-y: auto;
+}
+.dash-header {
+  padding: 18px 20px 14px; background: var(--branco);
+  border-bottom: 1px solid var(--cinza-borda); flex-shrink: 0;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.dash-title { font-family: 'Sora', sans-serif; font-size: 15px; font-weight: 600; color: var(--azul); }
+.dash-sub { font-size: 12px; color: var(--cinza-leve); margin-top: 2px; }
+.btn-exportar {
+  background: var(--verde); color: #fff; border: none;
+  padding: 9px 16px; border-radius: var(--radius-sm);
+  font-size: 13px; font-weight: 500; cursor: pointer;
+  font-family: 'DM Sans', sans-serif; transition: all 0.15s;
+  display: flex; align-items: center; gap: 6px;
+}
+.btn-exportar:hover { background: var(--azul); }
+.btn-exportar:disabled { background: var(--cinza-borda); color: var(--cinza-leve); cursor: default; }
+
+.dash-body { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+
+.kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.kpi-card {
+  background: var(--branco); border-radius: var(--radius);
+  padding: 14px 16px; border: 1px solid var(--cinza-borda);
+  transition: all 0.3s;
+}
+.kpi-label { font-size: 11px; color: var(--cinza-leve); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+.kpi-val { font-family: 'Sora', sans-serif; font-size: 22px; font-weight: 700; color: var(--azul); }
+.kpi-val.verde { color: var(--verde); }
+.kpi-val.placeholder { color: var(--cinza-borda); font-size: 18px; }
+
+.secao-card {
+  background: var(--branco); border-radius: var(--radius);
+  border: 1px solid var(--cinza-borda); overflow: hidden;
+}
+.secao-head {
+  padding: 12px 16px; border-bottom: 1px solid var(--cinza-borda);
+  font-size: 13px; font-weight: 600; color: var(--azul);
+  font-family: 'Sora', sans-serif;
+  display: flex; align-items: center; gap: 6px;
+}
+.secao-body { padding: 14px 16px; }
+
+.dado-linha {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding: 6px 0; border-bottom: 1px solid var(--cinza-bg); font-size: 13px;
+}
+.dado-linha:last-child { border-bottom: none; }
+.dado-chave { color: var(--cinza-leve); }
+.dado-valor { font-weight: 500; color: var(--cinza-texto); text-align: right; max-width: 55%; }
+.dado-valor.empty { color: var(--cinza-borda); font-style: italic; font-weight: 400; }
+
+.chart-wrap { height: 180px; position: relative; }
+
+.tag-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag {
+  background: var(--azul-claro); color: var(--azul);
+  padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 500;
+}
+.tag.verde { background: var(--verde-claro); color: var(--verde); }
+
+.placeholder-msg {
+  text-align: center; padding: 40px 20px;
+  color: var(--cinza-leve); font-size: 13px; line-height: 1.6;
+}
+.placeholder-icon { font-size: 32px; margin-bottom: 8px; opacity: 0.4; }
+
+/* Barra mobile */
+.mobile-tabs { display: none; }
+@media (max-width: 768px) {
+  .mobile-tabs {
+    display: flex; background: var(--branco);
+    border-bottom: 1px solid var(--cinza-borda);
+  }
+  .mobile-tab {
+    flex: 1; padding: 12px; text-align: center; font-size: 13px;
+    font-weight: 500; color: var(--cinza-leve); cursor: pointer; border: none;
+    background: none; font-family: 'DM Sans', sans-serif;
+    border-bottom: 2px solid transparent;
+  }
+  .mobile-tab.ativo { color: var(--azul); border-bottom-color: var(--azul); }
+}
+</style>
+</head>
+<body>
+
+<div class="mobile-tabs">
+  <button class="mobile-tab ativo" onclick="showTab('chat')">💬 Agente</button>
+  <button class="mobile-tab" onclick="showTab('dash')">📊 Dashboard</button>
+</div>
+
+<div class="app">
+  <!-- ── CHAT ── -->
+  <div class="painel-esq" id="painelChat">
+    <div class="chat-header">
+      <div class="logo-area">
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+          <rect width="28" height="28" rx="8" fill="#0C447C"/>
+          <text x="14" y="19" text-anchor="middle" fill="white" font-family="Sora" font-weight="700" font-size="11">DSA</text>
+        </svg>
+        <div>
+          <div class="logo-text">Business Plan 360º</div>
+          <div class="logo-sub">DSA Soluções Empresariais</div>
+        </div>
+      </div>
+      <div class="progresso-wrap">
+        <div class="progresso-bar"><div class="progresso-fill" id="progressoFill" style="width:0%"></div></div>
+        <span class="progresso-txt" id="progressoTxt">0%</span>
+      </div>
+      <div class="etapa-nome" id="etapaNome">Pronto para começar</div>
+    </div>
+
+    <div class="chat-msgs" id="chatMsgs"></div>
+    <div class="opcoes-rapidas" id="opcoesRapidas"></div>
+
+    <div class="chat-input-wrap">
+      <textarea class="chat-input" id="chatInput" placeholder="Escreva sua resposta..." rows="1"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();enviar()}"
+        oninput="autoResize(this)"></textarea>
+      <button class="send-btn" id="sendBtn" onclick="enviar()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- ── DASHBOARD ── -->
+  <div class="painel-dir" id="painelDash">
+    <div class="dash-header">
+      <div>
+        <div class="dash-title">Seu Plano de Negócios</div>
+        <div class="dash-sub" id="dashNomeEmp">Preencha o chat ao lado →</div>
+      </div>
+      <button class="btn-exportar" id="btnExportar" onclick="exportarExcel()" disabled>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Baixar Excel
+      </button>
+    </div>
+
+    <div class="dash-body" id="dashBody">
+      <div class="placeholder-msg">
+        <div class="placeholder-icon">✨</div>
+        <strong>Seu plano vai aparecer aqui</strong><br>
+        Conforme você responde as perguntas no chat,<br>seu Business Plan 360º vai sendo construído em tempo real.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── ESTADO ──────────────────────────────────────────────────────────────────
+const dados = {
+  nome: '', negocio: '', segmento: '', cidade: '',
+  missao: '', visao: '', valores: '', publico: '', diferencial: '',
+  forca: '', fraqueza: '', oportunidade: '', ameaca: '',
+  atendimentos: 0, conversao: 0, ticket: 0, meta_anual: 0,
+  canal1: '', canal2: '', canal3: '', estrategia_mkt: '',
+  custo_fixo: 0, custo_variavel: 0, prolabore: 0,
+  produto1: '', preco1: 0, produto2: '', preco2: 0,
+  operacao: '', ferramentas: '', diferencial_op: ''
+};
+
+const ETAPAS = [
+  { id: 'boas_vindas',   nome: 'Boas-vindas',    pct: 2  },
+  { id: 'identidade',    nome: 'Identidade',      pct: 15 },
+  { id: 'estrategia',    nome: 'Estratégia',      pct: 30 },
+  { id: 'swot',          nome: 'Análise SWOT',    pct: 45 },
+  { id: 'comercial',     nome: 'Comercial',        pct: 60 },
+  { id: 'marketing',     nome: 'Marketing',        pct: 72 },
+  { id: 'financeiro',    nome: 'Financeiro',       pct: 85 },
+  { id: 'operacoes',     nome: 'Operações',        pct: 95 },
+  { id: 'conclusao',     nome: 'Concluído!',       pct: 100},
+];
+
+let etapaAtual = 0;
+let aguardando = false;
+let historico = [];
+let chartFat = null;
+
+// ── FLUXO DE PERGUNTAS ───────────────────────────────────────────────────────
+const FLUXO = {
+  boas_vindas: {
+    pergunta: `Olá! 👋 Sou o agente do <strong>Business Plan 360º</strong> da DSA Soluções Empresariais.\n\nVou te guiar na criação do seu plano de negócios completo — estratégia, comercial, marketing e financeiro.\n\nVamos começar pelo início: <strong>qual é o seu nome?</strong>`,
+    campo: 'nome',
+    proxima: 'identidade_negocio',
+    opcoes: [],
+  },
+  identidade_negocio: {
+    pergunta: (d) => `Prazer, <strong>${d.nome}</strong>! 🌟\n\nAgora me conta: <strong>qual é o nome do seu negócio?</strong> (Se ainda não tem nome definido, pode escrever uma ideia ou "em construção")`,
+    campo: 'negocio',
+    proxima: 'segmento',
+    opcoes: [],
+  },
+  segmento: {
+    pergunta: () => `Legal! E qual é o <strong>segmento ou setor</strong> do seu negócio?`,
+    campo: 'segmento',
+    proxima: 'cidade',
+    opcoes: ['Moda & Beleza', 'Alimentação', 'Serviços', 'Saúde & Bem-estar', 'Educação', 'Tecnologia', 'Artesanato', 'Outro'],
+  },
+  cidade: {
+    pergunta: () => `Ótimo! Em qual <strong>cidade e estado</strong> você atua (ou pretende atuar)?`,
+    campo: 'cidade',
+    proxima: 'missao',
+    opcoes: [],
+  },
+  missao: {
+    pergunta: (d) => `Perfeito! Agora vamos para a parte mais importante: a <strong>alma do seu negócio</strong>. 💙\n\n<strong>Qual é a missão do ${d.negocio}?</strong>\n\nEx: "Oferecer produtos naturais acessíveis para mulheres que valorizam saúde e bem-estar"`,
+    campo: 'missao',
+    proxima: 'visao',
+    opcoes: [],
+  },
+  visao: {
+    pergunta: () => `Muito bem! Agora pense no futuro: <strong>onde você quer chegar com o seu negócio nos próximos 3 anos?</strong>\n\nEx: "Ser referência em moda sustentável na minha cidade"`,
+    campo: 'visao',
+    proxima: 'valores',
+    opcoes: [],
+  },
+  valores: {
+    pergunta: () => `Que visão inspiradora! 🚀\n\nAgora me conta: <strong>quais são os valores que guiam o seu negócio?</strong>\n\nEx: "Honestidade, qualidade, cuidado com o cliente, inovação"`,
+    campo: 'valores',
+    proxima: 'publico',
+    opcoes: [],
+  },
+  publico: {
+    pergunta: () => `Agora vamos falar de <strong>para quem você vende</strong>. 🎯\n\n<strong>Descreva seu público-alvo:</strong> quem são essas pessoas? Idade, perfil, o que gostam, o que precisam?`,
+    campo: 'publico',
+    proxima: 'diferencial',
+    opcoes: [],
+  },
+  diferencial: {
+    pergunta: (d) => `Ótimo! E o que faz o <strong>${d.negocio}</strong> ser diferente da concorrência?\n\n<strong>Qual é o seu maior diferencial?</strong>\n\nEx: "Atendimento personalizado", "Preço acessível com qualidade", "Produtos exclusivos"`,
+    campo: 'diferencial',
+    proxima: 'swot_forca',
+    opcoes: [],
+  },
+  swot_forca: {
+    pergunta: () => `Agora vamos fazer uma análise honesta do seu negócio — o famoso <strong>SWOT</strong>. 🔍\n\n<strong>Quais são as suas FORÇAS?</strong> (O que você faz muito bem, o que é seu ponto forte)\n\nEx: "Tenho experiência na área, bom atendimento, localização privilegiada"`,
+    campo: 'forca',
+    proxima: 'swot_fraqueza',
+    opcoes: [],
+  },
+  swot_fraqueza: {
+    pergunta: () => `Honestidade é o caminho! Agora: <strong>quais são as suas FRAQUEZAS?</strong> (O que ainda precisa melhorar)\n\nEx: "Pouco capital inicial, falta de experiência em finanças, sem equipe"`,
+    campo: 'fraqueza',
+    proxima: 'swot_oportunidade',
+    opcoes: [],
+  },
+  swot_oportunidade: {
+    pergunta: () => `E no mercado ao redor: <strong>quais são as OPORTUNIDADES</strong> que você enxerga?\n\nEx: "Crescimento das compras online, nicho pouco explorado, aumento da consciência sustentável"`,
+    campo: 'oportunidade',
+    proxima: 'swot_ameaca',
+    opcoes: [],
+  },
+  swot_ameaca: {
+    pergunta: () => `Por último no SWOT: <strong>quais são as AMEAÇAS</strong> que podem atrapalhar?\n\nEx: "Concorrência forte, crise econômica, sazonalidade nas vendas"`,
+    campo: 'ameaca',
+    proxima: 'atendimentos',
+    opcoes: [],
+  },
+  atendimentos: {
+    pergunta: () => `Análise SWOT concluída! 💪 Agora vamos ao <strong>processo comercial</strong>.\n\n<strong>Quantos clientes você atende (ou pretende atender) por mês?</strong>\n\nEx: "30", "50", "100"`,
+    campo: 'atendimentos',
+    proxima: 'conversao',
+    opcoes: ['10', '20', '30', '50', '100', '200'],
+  },
+  conversao: {
+    pergunta: () => `De cada 10 clientes que te procuram, <strong>quantos realmente compram?</strong>\n\nEscreva como número (ex: "3" = 30% de conversão)`,
+    campo: 'conversao',
+    proxima: 'ticket',
+    opcoes: ['2', '3', '4', '5', '6', '7', '8'],
+  },
+  ticket: {
+    pergunta: () => `Qual é o <strong>valor médio de cada venda</strong> (ticket médio)?\n\nEx: "150" para R$150,00`,
+    campo: 'ticket',
+    proxima: 'canal1',
+    opcoes: ['50', '100', '150', '200', '300', '500', '1000'],
+  },
+  canal1: {
+    pergunta: () => `Agora o <strong>marketing</strong>! 📣\n\nQuais são seus <strong>principais canais de venda e comunicação?</strong>\n\nComece pelo mais importante:`,
+    campo: 'canal1',
+    proxima: 'canal2',
+    opcoes: ['Instagram', 'WhatsApp', 'TikTok', 'Facebook', 'Loja física', 'Site próprio', 'iFood/Delivery', 'Indicação'],
+  },
+  canal2: {
+    pergunta: () => `E o <strong>segundo canal mais importante?</strong>`,
+    campo: 'canal2',
+    proxima: 'estrategia_mkt',
+    opcoes: ['Instagram', 'WhatsApp', 'TikTok', 'Facebook', 'Loja física', 'Site próprio', 'iFood/Delivery', 'Indicação', 'Não tenho segundo canal'],
+  },
+  estrategia_mkt: {
+    pergunta: () => `Como você <strong>atrai novos clientes</strong> hoje (ou como pretende atrair)?\n\nEx: "Postagens no Instagram, indicação de clientes, panfletos, eventos..."`,
+    campo: 'estrategia_mkt',
+    proxima: 'custo_fixo',
+    opcoes: [],
+  },
+  custo_fixo: {
+    pergunta: () => `Perfeito! Agora o <strong>financeiro</strong> 💰 — a parte mais importante para sua saúde empresarial.\n\n<strong>Qual é o total dos seus custos fixos mensais</strong> (aluguel, conta de luz, internet, contador, etc)?\n\nEscreva o valor total em reais. Ex: "800"`,
+    campo: 'custo_fixo',
+    proxima: 'custo_variavel',
+    opcoes: ['200', '400', '600', '800', '1000', '1500', '2000'],
+  },
+  custo_variavel: {
+    pergunta: () => `E os <strong>custos variáveis</strong> — quanto você gasta em % do que vende?\n\nSoma de impostos + custo do produto/serviço + embalagem. Ex: "40" para 40%`,
+    campo: 'custo_variavel',
+    proxima: 'prolabore',
+    opcoes: ['20', '30', '40', '50', '60'],
+  },
+  prolabore: {
+    pergunta: () => `Quanto você pretende <strong>retirar do negócio por mês</strong> (pró-labore / salário)?\n\nEx: "2000" para R$2.000,00`,
+    campo: 'prolabore',
+    proxima: 'operacao',
+    opcoes: ['1000', '1500', '2000', '3000', '4000', '5000'],
+  },
+  operacao: {
+    pergunta: () => `Quase lá! 🎯 <strong>Como funciona a operação do seu negócio?</strong>\n\nEx: "Trabalho sozinha de casa", "Tenho uma loja física com 1 funcionária", "Atendo por agendamento online"`,
+    campo: 'operacao',
+    proxima: 'ferramentas',
+    opcoes: ['Trabalho sozinha de casa', 'Loja física', 'Ateliê / oficina', 'Online (e-commerce)', 'Atendimento presencial agendado'],
+  },
+  ferramentas: {
+    pergunta: () => `Quais <strong>ferramentas ou sistemas</strong> você usa (ou pretende usar) para gerenciar o negócio?\n\nEx: "WhatsApp, Canva, planilha Excel, maquininha de cartão"`,
+    campo: 'ferramentas',
+    proxima: 'conclusao',
+    opcoes: ['WhatsApp + planilha', 'Canva + Instagram', 'Sistema de gestão (Bling, Nuvemshop)', 'iFood/marketplace', 'Só no controle manual'],
+  },
+  conclusao: {
+    pergunta: (d) => `🎉 <strong>Parabéns, ${d.nome}!</strong>\n\nSeu <strong>Business Plan 360º</strong> está completo!\n\nVeja o seu painel ao lado com:\n• Resumo estratégico do ${d.negocio}\n• Projeção financeira\n• Análise SWOT\n• Seus indicadores comerciais\n\nClique em <strong>"Baixar Excel"</strong> para ter o arquivo completo e profissional com a logo da DSA! ✨`,
+    campo: null,
+    proxima: null,
+    opcoes: [],
+  },
+};
+
+const ORDEM = [
+  'boas_vindas','identidade_negocio','segmento','cidade',
+  'missao','visao','valores','publico','diferencial',
+  'swot_forca','swot_fraqueza','swot_oportunidade','swot_ameaca',
+  'atendimentos','conversao','ticket',
+  'canal1','canal2','estrategia_mkt',
+  'custo_fixo','custo_variavel','prolabore',
+  'operacao','ferramentas','conclusao'
+];
+
+let stepIdx = 0;
+
+// ── INICIAR ──────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => mostrarPergunta(ORDEM[0]), 600);
+});
+
+function getEtapaPct(stepId) {
+  const grupos = [
+    { ids: ['boas_vindas','identidade_negocio','segmento','cidade'], pct: 12 },
+    { ids: ['missao','visao','valores','publico','diferencial'], pct: 30 },
+    { ids: ['swot_forca','swot_fraqueza','swot_oportunidade','swot_ameaca'], pct: 48 },
+    { ids: ['atendimentos','conversao','ticket'], pct: 62 },
+    { ids: ['canal1','canal2','estrategia_mkt'], pct: 74 },
+    { ids: ['custo_fixo','custo_variavel','prolabore'], pct: 88 },
+    { ids: ['operacao','ferramentas'], pct: 96 },
+    { ids: ['conclusao'], pct: 100 },
+  ];
+  for (const g of grupos) {
+    if (g.ids.includes(stepId)) return { pct: g.pct, nome: getEtapaNome(stepId) };
+  }
+  return { pct: 0, nome: '' };
+}
+
+function getEtapaNome(stepId) {
+  const nomes = {
+    boas_vindas:'Boas-vindas', identidade_negocio:'Identidade', segmento:'Segmento',
+    cidade:'Localização', missao:'Missão', visao:'Visão', valores:'Valores',
+    publico:'Público-alvo', diferencial:'Diferencial',
+    swot_forca:'SWOT', swot_fraqueza:'SWOT', swot_oportunidade:'SWOT', swot_ameaca:'SWOT',
+    atendimentos:'Comercial', conversao:'Comercial', ticket:'Comercial',
+    canal1:'Marketing', canal2:'Marketing', estrategia_mkt:'Marketing',
+    custo_fixo:'Financeiro', custo_variavel:'Financeiro', prolabore:'Financeiro',
+    operacao:'Operações', ferramentas:'Operações', conclusao:'Concluído!'
+  };
+  return nomes[stepId] || '';
+}
+
+function mostrarPergunta(stepId) {
+  const step = FLUXO[stepId];
+  if (!step) return;
+  const texto = typeof step.pergunta === 'function' ? step.pergunta(dados) : step.pergunta;
+  addMsg('agente', texto);
+  setOpcoes(step.opcoes || []);
+  const ep = getEtapaPct(stepId);
+  setProgresso(ep.pct, ep.nome);
+}
+
+function addMsg(tipo, texto) {
+  const wrap = document.getElementById('chatMsgs');
+  const div = document.createElement('div');
+  div.className = `msg ${tipo}`;
+  const av = document.createElement('div');
+  av.className = `avatar ${tipo === 'agente' ? 'ag' : 'us'}`;
+  av.textContent = tipo === 'agente' ? 'D' : '👩';
+  const bal = document.createElement('div');
+  bal.className = 'balao';
+  bal.innerHTML = texto.replace(/\n/g, '<br>');
+  div.appendChild(av); div.appendChild(bal);
+  wrap.appendChild(div);
+  wrap.scrollTop = wrap.scrollHeight;
+}
+
+function setOpcoes(lista) {
+  const wrap = document.getElementById('opcoesRapidas');
+  wrap.innerHTML = '';
+  lista.forEach(op => {
+    const btn = document.createElement('button');
+    btn.className = 'opcao-btn';
+    btn.textContent = op;
+    btn.onclick = () => { document.getElementById('chatInput').value = op; enviar(); };
+    wrap.appendChild(btn);
+  });
+}
+
+function setProgresso(pct, nome) {
+  document.getElementById('progressoFill').style.width = pct + '%';
+  document.getElementById('progressoTxt').textContent = pct + '%';
+  document.getElementById('etapaNome').textContent = nome;
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+async function enviar() {
+  const input = document.getElementById('chatInput');
+  const texto = input.value.trim();
+  if (!texto || aguardando) return;
+
+  addMsg('usuario', texto);
+  input.value = ''; input.style.height = '44px';
+  setOpcoes([]);
+  aguardando = true;
+  document.getElementById('sendBtn').disabled = true;
+
+  const stepId = ORDEM[stepIdx];
+  const step = FLUXO[stepId];
+
+  if (step && step.campo) {
+    const val = isNaN(parseFloat(texto)) ? texto : parseFloat(texto);
+    dados[step.campo] = val;
+    historico.push({ pergunta: stepId, resposta: texto });
+  }
+
+  atualizarDashboard();
+
+  // avançar
+  stepIdx++;
+  if (stepIdx < ORDEM.length) {
+    await delay(500);
+    mostrarPergunta(ORDEM[stepIdx]);
+    if (ORDEM[stepIdx] === 'conclusao') {
+      document.getElementById('btnExportar').disabled = false;
+    }
+  }
+
+  aguardando = false;
+  document.getElementById('sendBtn').disabled = false;
+  document.getElementById('chatInput').focus();
+}
+
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ── DASHBOARD ────────────────────────────────────────────────────────────────
+function fmt(v) {
+  if (!v || v === 0) return '—';
+  return 'R$ ' + Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function fmtN(v) { return v || '—'; }
+
+function atualizarDashboard() {
+  const d = dados;
+  const fat_mensal = (d.atendimentos * (d.conversao / 10) * d.ticket) || 0;
+  const fat_anual = fat_mensal * 12;
+  const custo_var_r = fat_mensal * (d.custo_variavel / 100);
+  const lucro_op = fat_mensal - custo_var_r - d.custo_fixo;
+  const lucro_liq = lucro_op - d.prolabore;
+  const margem = fat_mensal > 0 ? ((lucro_liq / fat_mensal) * 100).toFixed(1) : 0;
+  const pe = (1 - d.custo_variavel / 100) > 0
+    ? (d.custo_fixo / (1 - d.custo_variavel / 100)).toFixed(0) : 0;
+
+  if (d.negocio) document.getElementById('dashNomeEmp').textContent = d.negocio + (d.cidade ? ` · ${d.cidade}` : '');
+
+  const body = document.getElementById('dashBody');
+  body.innerHTML = `
+    <div class="kpi-grid">
+      <div class="kpi-card"><div class="kpi-label">Faturamento mensal</div><div class="kpi-val ${fat_mensal ? '' : 'placeholder'}">${fat_mensal ? fmt(fat_mensal) : '—'}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Lucro líquido</div><div class="kpi-val verde ${lucro_liq ? '' : 'placeholder'}">${lucro_liq ? fmt(lucro_liq) : '—'}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Margem de lucro</div><div class="kpi-val ${margem ? '' : 'placeholder'}">${margem ? margem + '%' : '—'}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Ponto de equilíbrio</div><div class="kpi-val ${pe ? '' : 'placeholder'}">${pe ? fmt(pe) : '—'}</div></div>
+    </div>
+
+    ${d.negocio ? `
+    <div class="secao-card">
+      <div class="secao-head">🏢 Identidade do negócio</div>
+      <div class="secao-body">
+        <div class="dado-linha"><span class="dado-chave">Nome</span><span class="dado-valor">${fmtN(d.negocio)}</span></div>
+        <div class="dado-linha"><span class="dado-chave">Segmento</span><span class="dado-valor">${fmtN(d.segmento)}</span></div>
+        <div class="dado-linha"><span class="dado-chave">Cidade</span><span class="dado-valor">${fmtN(d.cidade)}</span></div>
+        ${d.missao ? `<div class="dado-linha"><span class="dado-chave">Missão</span><span class="dado-valor">${d.missao}</span></div>` : ''}
+        ${d.visao ? `<div class="dado-linha"><span class="dado-chave">Visão</span><span class="dado-valor">${d.visao}</span></div>` : ''}
+        ${d.publico ? `<div class="dado-linha"><span class="dado-chave">Público-alvo</span><span class="dado-valor">${d.publico}</span></div>` : ''}
+        ${d.diferencial ? `<div class="dado-linha"><span class="dado-chave">Diferencial</span><span class="dado-valor">${d.diferencial}</span></div>` : ''}
+      </div>
+    </div>` : ''}
+
+    ${(d.forca || d.fraqueza || d.oportunidade || d.ameaca) ? `
+    <div class="secao-card">
+      <div class="secao-head">🔍 Análise SWOT</div>
+      <div class="secao-body">
+        ${d.forca ? `<div class="dado-linha"><span class="dado-chave" style="color:#0F6E56">✓ Forças</span><span class="dado-valor">${d.forca}</span></div>` : ''}
+        ${d.fraqueza ? `<div class="dado-linha"><span class="dado-chave" style="color:#D85A30">✗ Fraquezas</span><span class="dado-valor">${d.fraqueza}</span></div>` : ''}
+        ${d.oportunidade ? `<div class="dado-linha"><span class="dado-chave" style="color:#185FA5">→ Oportunidades</span><span class="dado-valor">${d.oportunidade}</span></div>` : ''}
+        ${d.ameaca ? `<div class="dado-linha"><span class="dado-chave" style="color:#993556">⚠ Ameaças</span><span class="dado-valor">${d.ameaca}</span></div>` : ''}
+      </div>
+    </div>` : ''}
+
+    ${d.atendimentos ? `
+    <div class="secao-card">
+      <div class="secao-head">📈 Comercial</div>
+      <div class="secao-body">
+        <div class="dado-linha"><span class="dado-chave">Atendimentos/mês</span><span class="dado-valor">${d.atendimentos}</span></div>
+        <div class="dado-linha"><span class="dado-chave">Taxa de conversão</span><span class="dado-valor">${d.conversao * 10}%</span></div>
+        <div class="dado-linha"><span class="dado-chave">Vendas/mês</span><span class="dado-valor">${Math.round(d.atendimentos * d.conversao / 10)}</span></div>
+        <div class="dado-linha"><span class="dado-chave">Ticket médio</span><span class="dado-valor">${fmt(d.ticket)}</span></div>
+        <div class="dado-linha"><span class="dado-chave">Faturamento anual</span><span class="dado-valor" style="font-weight:700;color:#0C447C">${fmt(fat_anual)}</span></div>
+      </div>
+    </div>` : ''}
+
+    ${(d.canal1 || d.estrategia_mkt) ? `
+    <div class="secao-card">
+      <div class="secao-head">📣 Marketing</div>
+      <div class="secao-body">
+        ${(d.canal1 || d.canal2) ? `<div class="dado-linha" style="align-items:flex-start"><span class="dado-chave">Canais</span><div class="tag-list">${[d.canal1,d.canal2].filter(Boolean).map(c=>`<span class="tag">${c}</span>`).join('')}</div></div>` : ''}
+        ${d.estrategia_mkt ? `<div class="dado-linha"><span class="dado-chave">Estratégia</span><span class="dado-valor">${d.estrategia_mkt}</span></div>` : ''}
+      </div>
+    </div>` : ''}
+
+    ${d.custo_fixo ? `
+    <div class="secao-card">
+      <div class="secao-head">💰 Financeiro</div>
+      <div class="secao-body">
+        <div class="dado-linha"><span class="dado-chave">Custos fixos/mês</span><span class="dado-valor">${fmt(d.custo_fixo)}</span></div>
+        <div class="dado-linha"><span class="dado-chave">Custos variáveis</span><span class="dado-valor">${d.custo_variavel}% das vendas</span></div>
+        <div class="dado-linha"><span class="dado-chave">Pró-labore</span><span class="dado-valor">${fmt(d.prolabore)}</span></div>
+        <div class="dado-linha"><span class="dado-chave">Lucro operacional</span><span class="dado-valor">${fmt(lucro_op)}</span></div>
+        <div class="dado-linha"><span class="dado-chave">Lucro líquido</span><span class="dado-valor" style="font-weight:700;color:#0F6E56">${fmt(lucro_liq)}</span></div>
+        <div class="dado-linha"><span class="dado-chave">Margem de lucro</span><span class="dado-valor" style="font-weight:700">${margem}%</span></div>
+        <div class="dado-linha"><span class="dado-chave">Ponto de equilíbrio</span><span class="dado-valor">${fmt(pe)}/mês</span></div>
+      </div>
+    </div>
+
+    <div class="secao-card">
+      <div class="secao-head">📊 Projeção anual (12 meses)</div>
+      <div class="secao-body">
+        <div class="chart-wrap"><canvas id="chartFat"></canvas></div>
+      </div>
+    </div>` : ''}
+
+    ${d.operacao ? `
+    <div class="secao-card">
+      <div class="secao-head">⚙️ Operações</div>
+      <div class="secao-body">
+        <div class="dado-linha"><span class="dado-chave">Modelo</span><span class="dado-valor">${fmtN(d.operacao)}</span></div>
+        ${d.ferramentas ? `<div class="dado-linha"><span class="dado-chave">Ferramentas</span><span class="dado-valor">${d.ferramentas}</span></div>` : ''}
+      </div>
+    </div>` : ''}
+  `;
+
+  if (d.custo_fixo) renderChart(fat_mensal, lucro_liq, d.custo_fixo + d.prolabore + (fat_mensal * d.custo_variavel / 100));
+}
+
+function renderChart(fat, lucro, custos) {
+  const ctx = document.getElementById('chartFat');
+  if (!ctx) return;
+  const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const fats = meses.map((_, i) => Math.round(fat * (1 + i * 0.02)));
+  const luc  = meses.map((_, i) => Math.round(lucro * (1 + i * 0.025)));
+  if (chartFat) chartFat.destroy();
+  chartFat = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: meses,
+      datasets: [
+        { label: 'Faturamento', data: fats, backgroundColor: 'rgba(24,95,165,0.7)', borderRadius: 4 },
+        { label: 'Lucro', data: luc, backgroundColor: 'rgba(15,110,86,0.7)', borderRadius: 4 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { font: { family: 'DM Sans', size: 11 }, boxWidth: 10, padding: 10 } } },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+        y: { grid: { color: '#F0F2F6' }, ticks: { font: { size: 10 }, callback: v => 'R$' + (v/1000).toFixed(0) + 'k' } }
+      }
+    }
+  });
+}
+
+// ── EXPORTAR EXCEL ───────────────────────────────────────────────────────────
+function exportarExcel() {
+  const d = dados;
+  const fat = d.atendimentos * (d.conversao / 10) * d.ticket;
+  const custo_var_r = fat * (d.custo_variavel / 100);
+  const lucro_op = fat - custo_var_r - d.custo_fixo;
+  const lucro_liq = lucro_op - d.prolabore;
+  const margem = fat > 0 ? (lucro_liq / fat * 100).toFixed(1) : 0;
+  const pe = (1 - d.custo_variavel / 100) > 0 ? (d.custo_fixo / (1 - d.custo_variavel / 100)).toFixed(0) : 0;
+
+  const wb = XLSX.utils.book_new();
+
+  // ── Aba Resumo ──
+  const resumo = [
+    ['BUSINESS PLAN 360º — DSA SOLUÇÕES EMPRESARIAIS', '', ''],
+    ['', '', ''],
+    ['DADOS DO NEGÓCIO', '', ''],
+    ['Nome do negócio', d.negocio, ''],
+    ['Segmento', d.segmento, ''],
+    ['Cidade / Estado', d.cidade, ''],
+    ['Empreendedora', d.nome, ''],
+    ['', '', ''],
+    ['ESTRATÉGIA', '', ''],
+    ['Missão', d.missao, ''],
+    ['Visão', d.visao, ''],
+    ['Valores', d.valores, ''],
+    ['Público-alvo', d.publico, ''],
+    ['Diferencial', d.diferencial, ''],
+    ['', '', ''],
+    ['ANÁLISE SWOT', '', ''],
+    ['Forças', d.forca, ''],
+    ['Fraquezas', d.fraqueza, ''],
+    ['Oportunidades', d.oportunidade, ''],
+    ['Ameaças', d.ameaca, ''],
+    ['', '', ''],
+    ['COMERCIAL', '', ''],
+    ['Atendimentos / mês', d.atendimentos, ''],
+    ['Taxa de conversão', d.conversao * 10 + '%', ''],
+    ['Vendas / mês', Math.round(d.atendimentos * d.conversao / 10), ''],
+    ['Ticket médio (R$)', d.ticket, ''],
+    ['Faturamento mensal (R$)', fat.toFixed(2), ''],
+    ['Faturamento anual (R$)', (fat * 12).toFixed(2), ''],
+    ['', '', ''],
+    ['MARKETING', '', ''],
+    ['Canal principal', d.canal1, ''],
+    ['Canal secundário', d.canal2, ''],
+    ['Estratégia de atração', d.estrategia_mkt, ''],
+    ['', '', ''],
+    ['FINANCEIRO', '', ''],
+    ['Custos fixos mensais (R$)', d.custo_fixo, ''],
+    ['Custos variáveis (%)', d.custo_variavel + '%', ''],
+    ['Pró-labore / retirada (R$)', d.prolabore, ''],
+    ['Lucro operacional (R$)', lucro_op.toFixed(2), ''],
+    ['Lucro líquido (R$)', lucro_liq.toFixed(2), ''],
+    ['Margem de lucro (%)', margem + '%', ''],
+    ['Ponto de equilíbrio (R$)', pe, ''],
+    ['', '', ''],
+    ['OPERAÇÕES', '', ''],
+    ['Modelo de operação', d.operacao, ''],
+    ['Ferramentas utilizadas', d.ferramentas, ''],
+  ];
+  const wsResumo = XLSX.utils.aoa_to_sheet(resumo);
+  wsResumo['!cols'] = [{ wch: 35 }, { wch: 50 }, { wch: 10 }];
+  XLSX.utils.book_append_sheet(wb, wsResumo, 'Plano Completo');
+
+  // ── Aba Projeção ──
+  const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const proj = [['Mês','Faturamento (R$)','Custos (R$)','Lucro (R$)']];
+  meses.forEach((m, i) => {
+    const f = fat * (1 + i * 0.02);
+    const c = (d.custo_fixo + d.prolabore + f * d.custo_variavel / 100);
+    proj.push([m, f.toFixed(2), c.toFixed(2), (f - c).toFixed(2)]);
+  });
+  const wsProj = XLSX.utils.aoa_to_sheet(proj);
+  wsProj['!cols'] = [{ wch: 10 }, { wch: 20 }, { wch: 20 }, { wch: 20 }];
+  XLSX.utils.book_append_sheet(wb, wsProj, 'Projeção 12 Meses');
+
+  // ── Aba SWOT ──
+  const swotData = [
+    ['FORÇAS', 'FRAQUEZAS'],
+    [d.forca, d.fraqueza],
+    ['', ''],
+    ['OPORTUNIDADES', 'AMEAÇAS'],
+    [d.oportunidade, d.ameaca],
+  ];
+  const wsSwot = XLSX.utils.aoa_to_sheet(swotData);
+  wsSwot['!cols'] = [{ wch: 45 }, { wch: 45 }];
+  XLSX.utils.book_append_sheet(wb, wsSwot, 'SWOT');
+
+  XLSX.writeFile(wb, `BusinessPlan360_${d.negocio || 'DSA'}.xlsx`);
+}
+
+// ── MOBILE TABS ──────────────────────────────────────────────────────────────
+function showTab(tab) {
+  document.querySelectorAll('.mobile-tab').forEach(b => b.classList.remove('ativo'));
+  event.target.classList.add('ativo');
+  const chat = document.getElementById('painelChat');
+  const dash = document.getElementById('painelDash');
+  if (tab === 'chat') { chat.style.display = 'flex'; dash.classList.remove('ativo'); }
+  else { chat.style.display = 'none'; dash.classList.add('ativo'); dash.style.display = 'flex'; }
+}
+</script>
+</body>
+</html>
